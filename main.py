@@ -1,4 +1,6 @@
 import os
+import random
+
 import cv2
 from datetime import datetime
 from hsemotion.facial_emotions import HSEmotionRecognizer
@@ -21,19 +23,20 @@ if __name__ == "__main__":
     # emotion recognizer
     model_name = 'enet_b0_8_best_afew'
     fer = HSEmotionRecognizer(model_name=model_name, device='cpu')  # device is cpu or gpu
-
+    count = 0
+    faceCount = 0
     #enumerate bcs we need the index item, iterates through all the items in ./images
     for idx, item in enumerate(getAllPaths("./images")):
         # read the image
         img = cv2.imread(os.path.abspath(item))
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # Detect faces in the image
+        #detect faces in the image
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
         # unique naming convention
         d = datetime.now()
-        name = f"{d.year}{d.month}{d.day}{d.hour}{d.minute}{d.second}{idx}"
+        # name = f"{d.second}{d.microsecond}{idx}{count}"
 
         # iterates over detected faces and draw the approximate head region
         for (x, y, w, h) in faces:
@@ -51,25 +54,38 @@ if __name__ == "__main__":
             x1 = max(0, x1)
 
             #original image is set to the cropped size of the head
-            img = img[y1:y1 + h1, x1:x1 + w1]
+            face_img = img[y1:y1 + h1, x1:x1 + w1]
 
-            #write image on the cropped folder
-            cv2.imwrite(f'./cropped/{name}.jpeg', img)
+            emotion, score = fer.predict_emotions(face_img, logits=True)
+            if(emotion == "Anger"):
+                cv2.imwrite(f'./cropped/anger/{count}{faceCount}.jpeg', face_img)
+            elif(emotion == "Disgust"):
+                cv2.imwrite(f'./cropped/disgust/{count}{faceCount}.jpeg', face_img)
+            elif (emotion == "Fear"):
+                cv2.imwrite(f'./cropped/fear/{count}{faceCount}.jpeg', face_img)
+            elif (emotion == "Happiness"):
+                cv2.imwrite(f'./cropped/happy/{count}{faceCount}.jpeg', face_img)
+            elif (emotion == "Sad"):
+                cv2.imwrite(f'./cropped/sad/{count}{faceCount}.jpeg', face_img)
+            elif (emotion == "Surprise"):
+                cv2.imwrite(f'./cropped/surprise/{count}{faceCount}.jpeg', face_img)
+            elif(emotion == "Neutral"):
+                cv2.imwrite(f'./cropped/neutral/{count}{faceCount}.jpeg', face_img)
+            faceCount += 1
+            #close all processes
             cv2.waitKey(0)
             cv2.destroyAllWindows()
-
-            #get emotion, and scores for each emotion
-            emotion, score = fer.predict_emotions(img, logits=True)
+        count += 1
 
 #-----------SAVES METADATA IN ONE OF THE DEFAULT FIELDS ------------- uses exif library
-            with open(f"./cropped/{name}.jpeg", "rb") as file:
-                print(file)
-                exif_img = Image(file)
-
-            exif_img.model = emotion
-
-            with open(f"./cropped/{name}.jpeg", "wb") as file:
-                file.write(exif_img.get_file())
+            # with open(f"./cropped/{name}.jpeg", "rb") as file:
+            #     print(file)
+            #     exif_img = Image(file)
+            # 
+            # exif_img.model = emotion
+            # 
+            # with open(f"./cropped/{name}.jpeg", "wb") as file:
+            #     file.write(exif_img.get_file())
 
 
 #------------- SAVING METADATA IN CUSTOM FIELD (UserComment). Doesn't show on Right Click -> Properties--------------
